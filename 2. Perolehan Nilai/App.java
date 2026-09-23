@@ -4,92 +4,108 @@ import java.util.Map;
 import java.util.Scanner;
 
 public class App {
+    private static final String FORMAT_ERROR =
+            "Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai";
+    private static final String[] SIMBOL = {"PA", "T", "K", "P", "UTS", "UAS"};
+    private static final Map<String, String> NAMA = new LinkedHashMap<>();
+
+    static {
+        NAMA.put("PA", "Partisipatif");
+        NAMA.put("T", "Tugas");
+        NAMA.put("K", "Kuis");
+        NAMA.put("P", "Proyek");
+        NAMA.put("UTS", "UTS");
+        NAMA.put("UAS", "UAS");
+    }
+
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-
-        String[] simbolOrder = {"PA", "T", "K", "P", "UTS", "UAS"};
-        Map<String, String> namaKomponen = new LinkedHashMap<>();
-        namaKomponen.put("PA", "Partisipatif");
-        namaKomponen.put("T", "Tugas");
-        namaKomponen.put("K", "Kuis");
-        namaKomponen.put("P", "Proyek");
-        namaKomponen.put("UTS", "UTS");
-        namaKomponen.put("UAS", "UAS");
-
         Map<String, Integer> bobotAkhir = new LinkedHashMap<>();
-        int totalBobotInput = 0;
-        for (String s : simbolOrder) {
-            int b = Integer.parseInt(sc.nextLine().trim());
-            bobotAkhir.put(s, b);
-            totalBobotInput += b;
+        long totalBobot = 0L;
+
+        for (String simbol : SIMBOL) {
+            if (!sc.hasNextLine()) {
+                System.out.println(FORMAT_ERROR);
+                return;
+            }
+            try {
+                int bobot = Integer.parseInt(sc.nextLine().trim());
+                if (bobot < 0) {
+                    System.out.println(FORMAT_ERROR);
+                    return;
+                }
+                bobotAkhir.put(simbol, bobot);
+                totalBobot += bobot;
+            } catch (NumberFormatException e) {
+                System.out.println(FORMAT_ERROR);
+                return;
+            }
         }
 
-        if (totalBobotInput != 100) {
+        if (totalBobot != 100) {
             System.out.println("Total bobot harus 100");
             return;
         }
 
-        Map<String, Integer> sumBobotRecord = new LinkedHashMap<>();
-        Map<String, Integer> sumPerolehanRecord = new LinkedHashMap<>();
-        for (String s : simbolOrder) {
-            sumBobotRecord.put(s, 0);
-            sumPerolehanRecord.put(s, 0);
+        Map<String, Long> totalBobotRecord = new LinkedHashMap<>();
+        Map<String, Long> totalNilaiRecord = new LinkedHashMap<>();
+        for (String simbol : SIMBOL) {
+            totalBobotRecord.put(simbol, 0L);
+            totalNilaiRecord.put(simbol, 0L);
         }
 
         while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            if (line.trim().equals("---")) break;
+            String line = sc.nextLine().trim();
+            if (line.equals("---")) break;
+            if (line.isEmpty()) continue;
 
-            String[] parts = line.split("\\|", -1);
-            if (parts.length != 3) {
-                System.out.println("Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai");
+            String[] data = line.split("\\|", -1);
+            if (data.length != 3) {
+                System.out.println(FORMAT_ERROR);
                 continue;
             }
 
-            String simbol = parts[0].trim();
-            String bobotStr = parts[1].trim();
-            String perolehanStr = parts[2].trim();
-
-            int bobot, perolehan;
-            try {
-                bobot = Integer.parseInt(bobotStr);
-                perolehan = Integer.parseInt(perolehanStr);
-            } catch (NumberFormatException e) {
-                System.out.println("Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai");
-                continue;
-            }
-
-            if (!namaKomponen.containsKey(simbol)) {
+            String simbol = data[0].trim();
+            if (!NAMA.containsKey(simbol)) {
                 System.out.println("Simbol tidak dikenal");
                 continue;
             }
 
-            if (perolehan > bobot) perolehan = bobot;
-            if (perolehan < 0) perolehan = 0;
-
-            sumBobotRecord.put(simbol, sumBobotRecord.get(simbol) + bobot);
-            sumPerolehanRecord.put(simbol, sumPerolehanRecord.get(simbol) + perolehan);
+            try {
+                int bobot = Integer.parseInt(data[1].trim());
+                int nilai = Integer.parseInt(data[2].trim());
+                if (bobot <= 0 || nilai < 0 || nilai > bobot) {
+                    System.out.println(FORMAT_ERROR);
+                    continue;
+                }
+                totalBobotRecord.put(simbol, totalBobotRecord.get(simbol) + bobot);
+                totalNilaiRecord.put(simbol, totalNilaiRecord.get(simbol) + nilai);
+            } catch (NumberFormatException e) {
+                System.out.println(FORMAT_ERROR);
+            }
         }
 
-        double nilaiAkhir = 0;
+        double nilaiAkhir = 0.0;
+        double[] kontribusi = new double[SIMBOL.length];
+        long[] persentase = new long[SIMBOL.length];
+
+        for (int i = 0; i < SIMBOL.length; i++) {
+            String simbol = SIMBOL[i];
+            long totalB = totalBobotRecord.get(simbol);
+            long totalN = totalNilaiRecord.get(simbol);
+            persentase[i] = totalB == 0 ? 0 : Math.round(totalN * 100.0 / totalB);
+            kontribusi[i] = totalB == 0 ? 0.0 : (totalN * 1.0 / totalB) * bobotAkhir.get(simbol);
+            nilaiAkhir += kontribusi[i];
+        }
+
         System.out.println("Perolehan Nilai:");
-        for (String s : simbolOrder) {
-            int bAkhir = bobotAkhir.get(s);
-            int sb = sumBobotRecord.get(s);
-            int sp = sumPerolehanRecord.get(s);
-
-            int persentase = sb == 0 ? 0 : (sp * 100) / sb;
-            double kontribusi = (persentase / 100.0) * bAkhir;
-            kontribusi = Math.round(kontribusi * 100) / 100.0;
-            nilaiAkhir += kontribusi;
-
-            System.out.printf(Locale.US, ">> %s: %d/100 (%.2f/%d)%n", namaKomponen.get(s), persentase, kontribusi, bAkhir);
+        for (int i = 0; i < SIMBOL.length; i++) {
+            String simbol = SIMBOL[i];
+            System.out.printf(Locale.US, ">> %s: %d/100 (%.2f/%d)%n",
+                    NAMA.get(simbol), persentase[i], kontribusi[i], bobotAkhir.get(simbol));
         }
 
-        // Bulatkan ke 2 desimal untuk menghindari galat floating-point
-        // (mis. 56.999999999999 seharusnya 57.00) sebelum dipakai untuk grading.
-        nilaiAkhir = Math.round(nilaiAkhir * 100) / 100.0;
-
+        nilaiAkhir = Math.round(nilaiAkhir * 100.0) / 100.0;
         System.out.println();
         System.out.printf(Locale.US, ">> Nilai Akhir: %.2f%n", nilaiAkhir);
         System.out.println(">> Grade: " + grade(nilaiAkhir));

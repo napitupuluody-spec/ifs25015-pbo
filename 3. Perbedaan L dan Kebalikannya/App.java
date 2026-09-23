@@ -3,18 +3,51 @@ import java.util.Scanner;
 public class App {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        int n = Integer.parseInt(sc.nextLine().trim());
+        if (!sc.hasNextLine()) return;
 
-        int[][] m = new int[n][n];
+        final int n;
+        try {
+            n = Integer.parseInt(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Data tidak valid");
+            return;
+        }
+        if (n <= 0) {
+            System.out.println("Data tidak valid");
+            return;
+        }
+
+        long[][] matriks = new long[n][n];
         for (int i = 0; i < n; i++) {
-            String[] parts = sc.nextLine().trim().split("\\s+");
+            if (!sc.hasNextLine()) {
+                System.out.println("Data tidak valid");
+                return;
+            }
+            String baris = sc.nextLine().trim();
+            String[] angka = baris.isEmpty() ? new String[0] : baris.split("\\s+");
+            if (angka.length != n) {
+                System.out.println("Data tidak valid");
+                return;
+            }
             for (int j = 0; j < n; j++) {
-                m[i][j] = Integer.parseInt(parts[j]);
+                try {
+                    matriks[i][j] = Long.parseLong(angka[j]);
+                } catch (NumberFormatException e) {
+                    System.out.println("Data tidak valid");
+                    return;
+                }
             }
         }
 
-        if (n == 1) {
-            int tengah = m[0][0];
+        if (n < 3) {
+            long tengah = 0;
+            if (n == 1) {
+                tengah = matriks[0][0];
+            } else {
+                for (int i = 0; i < n; i++) {
+                    for (int j = 0; j < n; j++) tengah += matriks[i][j];
+                }
+            }
             System.out.println("Nilai L: Tidak Ada");
             System.out.println("Nilai Kebalikan L: Tidak Ada");
             System.out.println("Nilai Tengah: " + tengah);
@@ -23,57 +56,29 @@ public class App {
             return;
         }
 
-        if (n == 2) {
-            int total = 0;
-            for (int i = 0; i < n; i++)
-                for (int j = 0; j < n; j++)
-                    total += m[i][j];
-            System.out.println("Nilai L: Tidak Ada");
-            System.out.println("Nilai Kebalikan L: Tidak Ada");
-            System.out.println("Nilai Tengah: " + total);
-            System.out.println("Perbedaan: Tidak Ada");
-            System.out.println("Dominan: " + total);
-            return;
-        }
-
-        // Nilai L: seluruh kolom pertama + sisa baris terakhir
-        // (tanpa sel pojok kiri bawah yang sudah terhitung di kolom,
-        // dan tanpa sel pojok kanan bawah)
-        int nilaiL = 0;
+        long nilaiL = 0;
+        long nilaiKebalikanL = 0;
         for (int i = 0; i < n; i++) {
-            nilaiL += m[i][0];
+            nilaiL += matriks[i][0];
+            nilaiKebalikanL += matriks[i][n - 1];
         }
         for (int j = 1; j < n - 1; j++) {
-            nilaiL += m[n - 1][j];
+            nilaiL += matriks[n - 1][j];
+            nilaiKebalikanL += matriks[0][j];
         }
 
-        // Nilai Kebalikan L: seluruh kolom terakhir + sisa baris pertama
-        // (tanpa sel pojok kiri atas dan tanpa sel pojok kanan atas
-        // yang sudah terhitung di kolom)
-        int nilaiKebalikanL = 0;
-        for (int i = 0; i < n; i++) {
-            nilaiKebalikanL += m[i][n - 1];
-        }
-        for (int j = 1; j < n - 1; j++) {
-            nilaiKebalikanL += m[0][j];
-        }
-
-        int nilaiTengah;
+        long nilaiTengah;
         if (n % 2 == 1) {
-            nilaiTengah = m[n / 2][n / 2];
+            nilaiTengah = matriks[n / 2][n / 2];
         } else {
-            int a = n / 2 - 1, b = n / 2;
-            nilaiTengah = m[a][a] + m[a][b] + m[b][a] + m[b][b];
+            int a = n / 2 - 1;
+            int b = n / 2;
+            nilaiTengah = matriks[a][a] + matriks[a][b]
+                    + matriks[b][a] + matriks[b][b];
         }
 
-        int perbedaan = Math.abs(nilaiL - nilaiKebalikanL);
-        int dominan;
-        if (perbedaan == 0) {
-            dominan = nilaiTengah;
-        } else {
-            dominan = Math.max(nilaiL, nilaiKebalikanL);
-        }
-
+        long perbedaan = Math.abs(nilaiL - nilaiKebalikanL);
+        long dominan = perbedaan == 0 ? nilaiTengah : Math.max(nilaiL, nilaiKebalikanL);
         System.out.println("Nilai L: " + nilaiL);
         System.out.println("Nilai Kebalikan L: " + nilaiKebalikanL);
         System.out.println("Nilai Tengah: " + nilaiTengah);

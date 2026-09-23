@@ -1,77 +1,60 @@
 import java.util.Scanner;
 
 public class App {
+    private static final long MENIT_PER_HARI = 24L * 60L;
+
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
-        String jamAwalStr = sc.nextLine().trim();
+        if (!sc.hasNextLine()) return;
+        String jamAwal = sc.nextLine().trim();
 
-        String[] hm = jamAwalStr.split(":", -1);
-        boolean valid = hm.length == 2;
-        int jam = 0, menit = 0;
-        if (valid) {
-            try {
-                jam = Integer.parseInt(hm[0].trim());
-                menit = Integer.parseInt(hm[1].trim());
-            } catch (NumberFormatException e) {
-                valid = false;
-            }
-        }
-        if (valid && (jam < 0 || jam > 23 || menit < 0 || menit > 59)) {
-            valid = false;
-        }
-
-        if (!valid) {
+        if (!jamAwal.matches("\\d{2}:\\d{2}")) {
             System.out.println("Jam tidak valid");
             return;
         }
 
-        int totalMenit = jam * 60 + menit;
-        int totalGeser = 0;
-        int pergantianHari = 0;
+        String[] bagian = jamAwal.split(":", -1);
+        int jam = Integer.parseInt(bagian[0]);
+        int menit = Integer.parseInt(bagian[1]);
+        if (jam > 23 || menit > 59) {
+            System.out.println("Jam tidak valid");
+            return;
+        }
+
+        long menitSaatIni = jam * 60L + menit;
+        long totalGeser = 0L;
+        long pergantianHari = 0L;
 
         while (sc.hasNextLine()) {
-            String line = sc.nextLine().trim();
-            if (line.equals("---")) break;
-            if (line.isEmpty()) continue;
+            String perintah = sc.nextLine().trim();
+            if (perintah.equals("---")) break;
+            if (perintah.isEmpty()) continue;
 
-            if (line.length() < 2 || (line.charAt(0) != '+' && line.charAt(0) != '-')) {
+            if (!perintah.matches("[+-]\\d+")) {
                 System.out.println("Perintah tidak valid");
                 continue;
             }
 
-            int n;
             try {
-                n = Integer.parseInt(line.substring(1));
+                long besarGeser = Long.parseLong(perintah.substring(1));
+                long geser = perintah.charAt(0) == '+' ? besarGeser : -besarGeser;
+                long menitSebelum = menitSaatIni;
+                long menitAbsolut = Math.addExact(menitSebelum, geser);
+
+                // Hitung jumlah batas tengah malam yang dilewati dalam perintah ini.
+                pergantianHari += Math.abs(Math.floorDiv(menitAbsolut, MENIT_PER_HARI));
+                menitSaatIni = Math.floorMod(menitAbsolut, MENIT_PER_HARI);
+                totalGeser = Math.addExact(totalGeser, geser);
             } catch (NumberFormatException e) {
                 System.out.println("Perintah tidak valid");
-                continue;
-            }
-
-            int geser = line.charAt(0) == '+' ? n : -n;
-            totalMenit += geser;
-            totalGeser += geser;
-
-            while (totalMenit >= 1440) {
-                totalMenit -= 1440;
-                pergantianHari++;
-            }
-            while (totalMenit < 0) {
-                totalMenit += 1440;
-                pergantianHari++;
+            } catch (ArithmeticException e) {
+                System.out.println("Perintah tidak valid");
             }
         }
 
-        int jamAkhir = totalMenit / 60;
-        int menitAkhir = totalMenit % 60;
-
-        String totalMenitStr;
-        if (totalGeser > 0) {
-            totalMenitStr = "+" + totalGeser;
-        } else if (totalGeser == 0) {
-            totalMenitStr = "0";
-        } else {
-            totalMenitStr = String.valueOf(totalGeser);
-        }
+        int jamAkhir = (int) (menitSaatIni / 60);
+        int menitAkhir = (int) (menitSaatIni % 60);
+        String totalMenitStr = totalGeser > 0 ? "+" + totalGeser : String.valueOf(totalGeser);
 
         System.out.printf("Jam Awal: %02d:%02d%n", jam, menit);
         System.out.printf("Jam Akhir: %02d:%02d%n", jamAkhir, menitAkhir);
